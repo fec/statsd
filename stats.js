@@ -76,7 +76,8 @@ config.configFile(process.argv[2], function (config, oldConfig) {
       timers.push({});
     }
 
-    server = dgram.createSocket('udp4', function (msg, rinfo) {
+    server = dgram.createSocket('udp4', function (msg, rinfo) 
+  {
       if (config.dumpMessages) { sys.log(msg.toString()); }
       var bits = msg.toString().split(':');
       var key = bits.shift()
@@ -85,45 +86,56 @@ config.configFile(process.argv[2], function (config, oldConfig) {
                     .replace(/[^a-zA-Z_\-0-9\.]/g, '');
       var flushBucket = -1;    
                               
-      // find the appropriate bucket
-      for (var i = 0; i < config.flushBuckets.length; i++) {
-        if (key.match(config.flushBuckets[i].pattern || ".*")) {
+      for (var i = 0; i < config.flushBuckets.length; i++) 
+	  {
+        if (key.match(config.flushBuckets[i].pattern || ".*")) 
+		{
           flushBucket = i;
-          break;
+          if (flushBucket < 0) 
+		  {
+            sys.log("key " + key + "didn't match expected pattern\n");
+            return;
+          }
+          //break;
+		  if (bits.length == 0) 
+		  {
+			bits.push("1");
+		  }
+		  for (var ij = 0; ij < bits.length; ij++) 
+		  {
+			var sampleRate = 1;
+			var fields = bits[ij].split("|");
+			if (fields[1] === undefined) 
+			{
+				sys.log('Bad line: ' + fields);
+				continue;
+			}
+			if (fields[1].trim() == "ms") 
+			{
+			  if (! timers[flushBucket][key]) 
+			  {
+				timers[flushBucket][key] = [];
+			  }
+			  timers[flushBucket][key].push(Number(fields[0] || 0));
+			} 
+			else 
+			{
+			  if (fields[2] && fields[2].match(/^@([\d\.]+)/)) 
+			  {
+				sampleRate = Number(fields[2].match(/^@([\d\.]+)/)[1]);
+			  }
+			  if (! counters[flushBucket][key]) 
+			  {
+				counters[flushBucket][key] = 0;
+			  }
+			  counters[flushBucket][key] += Number(fields[0] || 1) * (1 / sampleRate);
+			}
+		  }
+		  
         }
       }
                                   
-      if (flushBucket < 0) {
-        sys.log("key " + key + "didn't match expected pattern\n");
-        return;
-      }
 
-      if (bits.length == 0) {
-        bits.push("1");
-      }
-
-      for (var i = 0; i < bits.length; i++) {
-        var sampleRate = 1;
-        var fields = bits[i].split("|");
-        if (fields[1] === undefined) {
-            sys.log('Bad line: ' + fields);
-            continue;
-        }
-        if (fields[1].trim() == "ms") {
-          if (! timers[flushBucket][key]) {
-            timers[flushBucket][key] = [];
-          }
-          timers[flushBucket][key].push(Number(fields[0] || 0));
-        } else {
-          if (fields[2] && fields[2].match(/^@([\d\.]+)/)) {
-            sampleRate = Number(fields[2].match(/^@([\d\.]+)/)[1]);
-          }
-          if (! counters[flushBucket][key]) {
-            counters[flushBucket][key] = 0;
-          }
-          counters[flushBucket][key] += Number(fields[0] || 1) * (1 / sampleRate);
-        }
-      }
     });
 
     server.bind(config.port || 8125);
@@ -156,7 +168,8 @@ config.configFile(process.argv[2], function (config, oldConfig) {
             var mean = min;
             var maxAtThreshold = max;
 
-            if (count > 1) {
+            if (count > 1) 
+			{
               var thresholdIndex = Math.round(((100 - pctThreshold) / 100) * count);
               var numInThreshold = count - thresholdIndex;
               values = values.slice(0, numInThreshold);
@@ -192,16 +205,20 @@ config.configFile(process.argv[2], function (config, oldConfig) {
         statString += 'statsd.numStats ' + numStats + ' ' + ts + "\n";
         var graphite = net.createConnection(config.graphitePort, config.graphiteHost);
 
-        graphite.on('connect', function() {
+        graphite.on('connect', function() 
+		{
                       this.write(statString);
                       this.end();
-                    });
+         });
       };
+
     };
     
     // setup flushers
-    for (var i = 0; i < config.flushBuckets.length; i++) {
+    for (var i = 0; i < config.flushBuckets.length; i++) 
+	{
       var flushInterval = new Number(config.flushBuckets[i].flushInterval || 10000);
+	  sys.log("Setup Flusher: " + flushInterval);
       flushInts.push(setInterval(mkFlusher(i
                                          , flushInterval
                                          , config.flushBuckets[i].statPrefix)
