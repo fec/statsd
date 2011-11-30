@@ -7,8 +7,18 @@
 , flushBuckets: [
     {
       pattern: "^.*"
+    , flushInterval: 60000
+    , statPrefix: "stats60"
+  },
+    {
+      pattern: "^.*"
     , flushInterval: 10000
-    , statPrefix: "stats"
+    , statPrefix: "stats10"
+    },
+    {
+      pattern: "^.*"
+    , flushInterval: 1000
+    , statPrefix: "stats1"
     }
   ]
 }
